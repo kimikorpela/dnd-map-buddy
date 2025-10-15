@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-family: 'Cinzel', serif;
+    }
+
+    body {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        min-height: 100vh;
+    }
+}
+
+@layer components {
+    .dnd-button {
+        @apply bg-gradient-to-r from-dnd-brown-600 to-dnd-brown-700 text-white font-medium py-2 px-4 rounded-lg border border-dnd-brown-500 shadow-lg hover:from-dnd-brown-500 hover:to-dnd-brown-600 hover:shadow-xl hover:scale-105 transition-all duration-200 ease-in-out active:scale-95;
+    }
+
+    .dnd-button-secondary {
+        @apply bg-gradient-to-r from-dnd-gold-600 to-dnd-gold-700 text-white font-medium py-2 px-4 rounded-lg border border-dnd-gold-500 shadow-lg hover:from-dnd-gold-500 hover:to-dnd-gold-600 hover:shadow-xl hover:scale-105 transition-all duration-200 ease-in-out active:scale-95;
+    }
+
+    .dnd-card {
+        @apply bg-gradient-to-br from-gray-800 to-gray-900 border border-dnd-brown-600 rounded-xl shadow-2xl backdrop-blur-sm hover:shadow-dnd-gold-500/20 hover:shadow-2xl transition-all duration-300 ease-in-out;
+    }
+
+    .dnd-input {
+        @apply bg-gray-800 border border-dnd-brown-500 text-white rounded-lg px-3 py-2 focus:border-dnd-gold-500 focus:ring-2 focus:ring-dnd-gold-500/20 focus:outline-none transition-all duration-200;
+    }
+
+    .dnd-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #8B4513 #374151;
+    }
+
+    .dnd-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .dnd-scrollbar::-webkit-scrollbar-track {
+        background: #374151;
+    }
+
+    .dnd-scrollbar::-webkit-scrollbar-thumb {
+        background: #8B4513;
+        border-radius: 4px;
+    }
+
+    .dnd-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #A0522D;
+    }
+
+    .medieval-text {
+        font-family: 'Uncial Antiqua', cursive;
+    }
+
+    .glow-effect {
+        @apply shadow-lg shadow-dnd-gold-500/30;
+    }
+}
+
+@layer utilities {
+    .text-shadow {
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .text-glow {
+        text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+}

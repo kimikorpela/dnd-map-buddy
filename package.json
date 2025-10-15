@@ -1,0 +1,26 @@
+{
+    "name": "dnd-map-buddy",
+    "version": "1.0.0",
+    "description": "A D&D-themed image viewer application for maps and assets",
+    "private": true,
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "dev": "concurrently --kill-others --prefix-colors \"bgBlue.bold,bgGreen.bold\" --names \"BACKEND,FRONTEND\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "dev:backend": "npm run dev --workspace=backend",
+        "dev:frontend": "npm run dev --workspace=frontend",
+        "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+        "start": "npm run start --workspace=backend",
+        "install:all": "npm install && npm install --workspace=backend && npm install --workspace=frontend",
+        "kill": "echo '🛑 Stopping D&D Map Buddy servers...' && (pkill -f 'tsx watch' || true) && (pkill -f 'vite' || true) && (pkill -f 'dnd-map-buddy' || true) && echo '✅ All servers stopped'",
+        "kill:all": "./scripts/kill-all.sh"
+    },
+    "devDependencies": {
+        "concurrently": "8.2.2"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "npm": ">=9.0.0"
+    }
+}

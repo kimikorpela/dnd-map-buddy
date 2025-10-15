@@ -1,0 +1,17 @@
+{
+  "name": "D&D Map Buddy",
+  "short_name": "MapBuddy",
+  "description": "A D&D-themed image viewer for maps and assets",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#8B4513",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "d20.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    }
+  ]
+}
