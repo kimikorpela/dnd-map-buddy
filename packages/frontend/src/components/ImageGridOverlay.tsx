@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Wand2 } from 'lucide-react';
 import { Image, Folder } from '../types';
 import { UploadArea } from './UploadArea';
 
@@ -10,6 +10,7 @@ interface ImageGridOverlayProps {
     onImageDelete: (imageId: string) => Promise<any>;
     onImageUpload: (file: File, folderId: string) => Promise<any>;
     onClose: () => void;
+    onAIGeneratorOpen: (folderId: string) => void;
 }
 
 export const ImageGridOverlay: React.FC<ImageGridOverlayProps> = ({
@@ -18,7 +19,8 @@ export const ImageGridOverlay: React.FC<ImageGridOverlayProps> = ({
     onImageSelect,
     onImageDelete,
     onImageUpload,
-    onClose
+    onClose,
+    onAIGeneratorOpen
 }) => {
     const [isUploading, setIsUploading] = useState(false);
 
@@ -49,6 +51,13 @@ export const ImageGridOverlay: React.FC<ImageGridOverlayProps> = ({
                             disabled={isUploading}
                             className="inline-block"
                         />
+                        <button
+                            onClick={() => onAIGeneratorOpen(folder.id)}
+                            className="p-3 bg-purple-600/50 hover:bg-purple-600/70 rounded-lg text-white transition-colors"
+                            title="Generate AI Map"
+                        >
+                            <Wand2 className="h-5 w-5" />
+                        </button>
                         <button
                             onClick={onClose}
                             className="p-3 bg-red-600/50 hover:bg-red-600/70 rounded-lg text-white transition-colors"

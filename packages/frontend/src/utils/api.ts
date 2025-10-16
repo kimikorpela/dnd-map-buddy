@@ -104,6 +104,18 @@ class ApiClient {
         });
     }
 
+    async uploadGeneratedImage(imageData: string, prompt: string, folderId: string, originalName?: string): Promise<ApiResponse<Image>> {
+        return this.request<Image>('/images/upload-generated', {
+            method: 'POST',
+            body: JSON.stringify({
+                imageData,
+                prompt,
+                folderId,
+                originalName
+            }),
+        });
+    }
+
     getImageUrl(filename: string): string {
         // Backend serves static files from uploads directory at root path
         return `http://localhost:3001/${filename}`;

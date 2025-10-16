@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize2, Grid3X3, RotateCcw, Maximize } from 'lucide-react';
+import { X, Download, ZoomIn, ZoomOut, RotateCw, Maximize2, Grid3X3, RotateCcw, Maximize, Square, Eye, EyeOff } from 'lucide-react';
 import { Image } from '../types';
 import { apiClient } from '../utils/api';
 import { useScreenInfo } from '../hooks/useScreenInfo';
+import { DndGridOverlay } from './DndGridOverlay';
 
 interface ImageViewerProps {
     image: Image;
@@ -25,6 +26,9 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const [imageError, setImageError] = useState(false);
     const [showGrid, setShowGrid] = useState(false);
     const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+    const [showDndGrid, setShowDndGrid] = useState(false);
+    const [isGridLockedToImage, setIsGridLockedToImage] = useState(true);
+    const [showHUD, setShowHUD] = useState(true);
 
     // Screen information
     const screenInfo = useScreenInfo();
@@ -35,6 +39,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     const dragStartRef = useRef({ x: 0, y: 0 });
     const lastPanOffsetRef = useRef({ x: 0, y: 0 });
     const wheelTimeoutRef = useRef<number | null>(null);
+    const dragThrottleRef = useRef<number | null>(null);
 
     const imageUrl = apiClient.getImageUrl(image.filename);
 
@@ -142,6 +147,14 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 // Apply auto-fit
                 applyAutoFit();
             }
+            if (e.key === 'g' || e.key === 'G') {
+                // Toggle D&D grid
+                setShowDndGrid(prev => !prev);
+            }
+            if (e.key === 'h' || e.key === 'H') {
+                // Toggle HUD
+                setShowHUD(prev => !prev);
+            }
         };
 
         const handleWheel = (e: WheelEvent) => {
@@ -152,7 +165,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 clearTimeout(wheelTimeoutRef.current);
             }
 
-            const zoomStep = 0.01; // Very small step for extremely fine zoom control
+            const zoomStep = 0.05; // Increased from 0.01 for faster zoom
             const zoomFactor = e.deltaY > 0 ? -zoomStep : zoomStep;
 
             // Use requestAnimationFrame for smoother updates
@@ -165,23 +178,33 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         };
 
         const handleGlobalMouseMove = (e: MouseEvent) => {
-            if (isDragging && scale > 1) {
+            if (isDragging && scale > 1.1) {
                 e.preventDefault();
-                const deltaX = e.clientX - dragStartRef.current.x;
-                const deltaY = e.clientY - dragStartRef.current.y;
 
-                // Adjust drag direction based on rotation
-                const radians = (rotation * Math.PI) / 180;
-                const cos = Math.cos(radians);
-                const sin = Math.sin(radians);
+                // Throttle mouse move events for better performance
+                if (dragThrottleRef.current) {
+                    return;
+                }
 
-                // Rotate the delta coordinates
-                const rotatedDeltaX = deltaX * cos + deltaY * sin;
-                const rotatedDeltaY = -deltaX * sin + deltaY * cos;
+                dragThrottleRef.current = requestAnimationFrame(() => {
+                    const deltaX = e.clientX - dragStartRef.current.x;
+                    const deltaY = e.clientY - dragStartRef.current.y;
 
-                setPanOffset({
-                    x: lastPanOffsetRef.current.x + rotatedDeltaX,
-                    y: lastPanOffsetRef.current.y + rotatedDeltaY
+                    // Adjust drag direction based on rotation
+                    const radians = (rotation * Math.PI) / 180;
+                    const cos = Math.cos(radians);
+                    const sin = Math.sin(radians);
+
+                    // Rotate the delta coordinates
+                    const rotatedDeltaX = deltaX * cos + deltaY * sin;
+                    const rotatedDeltaY = -deltaX * sin + deltaY * cos;
+
+                    setPanOffset({
+                        x: lastPanOffsetRef.current.x + rotatedDeltaX,
+                        y: lastPanOffsetRef.current.y + rotatedDeltaY
+                    });
+
+                    dragThrottleRef.current = null;
                 });
             }
         };
@@ -208,7 +231,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
 
     // Mouse event handlers for dragging
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (scale > 1) {
+        if (scale > 1.1) {
             e.preventDefault();
             setIsDragging(true);
             dragStartRef.current = { x: e.clientX, y: e.clientY };
@@ -256,27 +279,66 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             {/* Minimal Transparent Menu - Top Right */}
             <div className="absolute top-4 right-4 z-20">
                 <div className="flex items-center space-x-2">
-                    {/* Grid Button */}
-                    {images.length > 0 && (
-                        <button
-                            onClick={() => setShowGrid(!showGrid)}
-                            className="p-3 bg-black/20 hover:bg-black/60 rounded-full text-white transition-all duration-300 backdrop-blur-sm"
-                            title="Show image grid"
-                        >
-                            <Grid3X3 className="h-6 w-6" />
-                        </button>
-                    )}
-
-                    {/* Close Button */}
+                    {/* HUD Toggle Button */}
                     <button
-                        onClick={onClose}
-                        className="p-3 bg-red-600/20 hover:bg-red-600/60 rounded-full text-white transition-all duration-300 backdrop-blur-sm"
-                        title="Close viewer"
+                        onClick={() => setShowHUD(!showHUD)}
+                        className="p-3 bg-black/20 hover:bg-black/60 rounded-full text-white transition-all duration-300 backdrop-blur-sm"
+                        title={showHUD ? "Hide HUD" : "Show HUD"}
                     >
-                        <X className="h-6 w-6" />
+                        {showHUD ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                     </button>
+
+                    {showHUD && (
+                        <>
+                            {/* D&D Grid Button */}
+                            <button
+                                onClick={() => setShowDndGrid(!showDndGrid)}
+                                className={`p-3 rounded-full text-white transition-all duration-300 backdrop-blur-sm ${showDndGrid
+                                    ? 'bg-green-600/50 hover:bg-green-600/70'
+                                    : 'bg-black/20 hover:bg-black/60'
+                                    }`}
+                                title="Toggle D&D movement grid"
+                            >
+                                <Grid3X3 className="h-6 w-6" />
+                            </button>
+
+
+                            {/* Image Selection Grid Button */}
+                            {images.length > 0 && (
+                                <button
+                                    onClick={() => setShowGrid(!showGrid)}
+                                    className="p-3 bg-black/20 hover:bg-black/60 rounded-full text-white transition-all duration-300 backdrop-blur-sm"
+                                    title="Show image selection grid"
+                                >
+                                    <Square className="h-6 w-6" />
+                                </button>
+                            )}
+
+                            {/* Close Button */}
+                            <button
+                                onClick={onClose}
+                                className="p-3 bg-red-600/20 hover:bg-red-600/60 rounded-full text-white transition-all duration-300 backdrop-blur-sm"
+                                title="Close viewer"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
+
+            {/* D&D Grid Overlay */}
+            <DndGridOverlay
+                isVisible={showDndGrid}
+                imageScale={scale}
+                imageRotation={rotation}
+                imagePanOffset={panOffset}
+                isLockedToImage={isGridLockedToImage}
+                onLockToggle={() => setIsGridLockedToImage(!isGridLockedToImage)}
+                imageDimensions={imageDimensions}
+                showHUD={showHUD}
+            />
+
 
             {/* Image Grid Overlay */}
             {showGrid && (
@@ -346,7 +408,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                     className={`max-w-full max-h-full object-contain ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                     style={{
                         transform: `scale(${scale}) rotate(${rotation}deg) translate(${panOffset.x}px, ${panOffset.y}px)`,
-                        cursor: isDragging ? 'grabbing' : (scale > 1 ? 'grab' : 'default'),
+                        cursor: isDragging ? 'grabbing' : (scale > 1.1 ? 'grab' : 'default'),
                         transition: isDragging ? 'none' : 'opacity 0.3s ease-in-out'
                     }}
                     onLoad={(e) => {
@@ -362,84 +424,88 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
             </div>
 
             {/* Minimal Controls - Bottom Right */}
-            <div className="absolute bottom-4 right-4 z-20">
-                <div className="flex items-center space-x-2 bg-black/20 hover:bg-black/60 rounded-full p-2 transition-all duration-300 backdrop-blur-sm">
-                    <button
-                        onClick={() => setScale(prev => Math.max(prev - 0.1, 0.1))}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Zoom out"
-                    >
-                        <ZoomOut className="h-5 w-5" />
-                    </button>
+            {showHUD && (
+                <div className="absolute bottom-4 right-4 z-20">
+                    <div className="flex items-center space-x-2 bg-black/20 hover:bg-black/60 rounded-full p-2 transition-all duration-300 backdrop-blur-sm">
+                        <button
+                            onClick={() => setScale(prev => Math.max(prev - 0.1, 0.1))}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Zoom out"
+                        >
+                            <ZoomOut className="h-5 w-5" />
+                        </button>
 
-                    <span className="text-white text-sm min-w-[3rem] text-center">
-                        {Math.round(scale * 100)}%
-                    </span>
+                        <span className="text-white text-sm min-w-[3rem] text-center">
+                            {Math.round(scale * 100)}%
+                        </span>
 
-                    <button
-                        onClick={() => setScale(prev => Math.min(prev + 0.1, 5))}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Zoom in"
-                    >
-                        <ZoomIn className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={() => setScale(prev => Math.min(prev + 0.1, 5))}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Zoom in"
+                        >
+                            <ZoomIn className="h-5 w-5" />
+                        </button>
 
-                    <button
-                        onClick={() => setRotation(prev => (prev + 90) % 360)}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Rotate"
-                    >
-                        <RotateCw className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={() => setRotation(prev => (prev + 90) % 360)}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Rotate"
+                        >
+                            <RotateCw className="h-5 w-5" />
+                        </button>
 
-                    <button
-                        onClick={resetView}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Reset view"
-                    >
-                        <RotateCcw className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={resetView}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Reset view"
+                        >
+                            <RotateCcw className="h-5 w-5" />
+                        </button>
 
-                    <button
-                        onClick={applyAutoFit}
-                        className="p-2 bg-blue-600/50 text-white hover:bg-blue-600/70 rounded-full transition-colors"
-                        title="Auto-fit to screen"
-                    >
-                        <Maximize className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={applyAutoFit}
+                            className="p-2 bg-blue-600/50 text-white hover:bg-blue-600/70 rounded-full transition-colors"
+                            title="Auto-fit to screen"
+                        >
+                            <Maximize className="h-5 w-5" />
+                        </button>
 
 
-                    <button
-                        onClick={toggleFullscreen}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Fullscreen"
-                    >
-                        <Maximize2 className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Fullscreen"
+                        >
+                            <Maximize2 className="h-5 w-5" />
+                        </button>
 
-                    <button
-                        onClick={handleDownload}
-                        className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                        title="Download"
-                    >
-                        <Download className="h-5 w-5" />
-                    </button>
+                        <button
+                            onClick={handleDownload}
+                            className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                            title="Download"
+                        >
+                            <Download className="h-5 w-5" />
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Image Info - Bottom Left */}
-            <div className="absolute bottom-4 left-4 z-20 bg-black/20 hover:bg-black/60 rounded-lg px-4 py-2 text-white text-sm transition-all duration-300 backdrop-blur-sm">
-                <p className="font-medium">{image.originalName}</p>
-                <p className="text-gray-300">
-                    {formatFileSize(image.size)} • {new Date(image.uploadedAt).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                    Scroll to zoom • Drag to pan • Arrow keys to navigate • 0 to reset • A to auto-fit
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                    Scale: {Math.round(scale * 100)}% • Rotation: {rotation}°
-                </p>
-            </div>
+            {showHUD && (
+                <div className="absolute bottom-4 left-4 z-20 bg-black/20 hover:bg-black/60 rounded-lg px-4 py-2 text-white text-sm transition-all duration-300 backdrop-blur-sm">
+                    <p className="font-medium">{image.originalName}</p>
+                    <p className="text-gray-300">
+                        {formatFileSize(image.size)} • {new Date(image.uploadedAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Scroll to zoom • Drag to pan • Arrow keys to navigate • 0 to reset • A to auto-fit • G for grid
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Scale: {Math.round(scale * 100)}% • Rotation: {rotation}°
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

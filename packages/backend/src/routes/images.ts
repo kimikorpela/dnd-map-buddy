@@ -4,6 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { loadImages, addImage, deleteImage, updateFolderImageCount } from '../utils/storage';
 import { ApiResponse, Image } from '../types';
+import fs from 'fs-extra';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage,
     limits: {
-        fileSize: 50 * 1024 * 1024 // 50MB limit
+        fileSize: 100 * 1024 * 1024 // 100MB limit
     },
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|gif|webp|bmp/;
@@ -142,6 +143,62 @@ router.delete('/:imageId', async (req, res) => {
         const response: ApiResponse<null> = {
             success: false,
             error: 'Failed to delete image'
+        };
+        res.status(500).json(response);
+    }
+});
+
+// Upload generated AI image
+router.post('/upload-generated', async (req, res) => {
+    try {
+        const { imageData, prompt, folderId, originalName } = req.body;
+
+        if (!imageData || !prompt || !folderId) {
+            const response: ApiResponse<null> = {
+                success: false,
+                error: 'Missing required fields: imageData, prompt, folderId'
+            };
+            return res.status(400).json(response);
+        }
+
+        // Convert base64 to buffer
+        const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Generate unique filename
+        const filename = `${uuidv4()}.png`;
+        const filePath = path.join(__dirname, '../../uploads', filename);
+
+        // Save file
+        await fs.writeFile(filePath, buffer);
+
+        // Create image record
+        const newImage: Image = {
+            id: uuidv4(),
+            filename,
+            originalName: originalName || `AI Generated: ${prompt.substring(0, 50)}...`,
+            size: buffer.length,
+            mimeType: 'image/png',
+            uploadedAt: new Date(),
+            folderId,
+            prompt: prompt // Store the AI prompt for reference
+        };
+
+        // Add to storage
+        await addImage(newImage);
+        await updateFolderImageCount(folderId);
+
+        const response: ApiResponse<Image> = {
+            success: true,
+            data: newImage
+        };
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Error uploading generated image:', error);
+        const response: ApiResponse<null> = {
+            success: false,
+            error: 'Failed to upload generated image'
         };
         res.status(500).json(response);
     }

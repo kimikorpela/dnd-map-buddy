@@ -6,6 +6,7 @@ import { FolderSelection } from './components/FolderSelection';
 import { ImageGridOverlay } from './components/ImageGridOverlay';
 import { ImageViewer } from './components/ImageViewer';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { AIMapGenerator } from './components/AIMapGenerator';
 
 function App() {
     const [folders, setFolders] = useState<Folder[]>([]);
@@ -13,6 +14,8 @@ function App() {
     const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<Image | null>(null);
     const [showImageGrid, setShowImageGrid] = useState(false);
+    const [showAIGenerator, setShowAIGenerator] = useState(false);
+    const [aiGeneratorFolderId, setAiGeneratorFolderId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -91,6 +94,11 @@ function App() {
     //     return response;
     // };
 
+    const handleAIGeneratorOpen = (folderId: string) => {
+        setAiGeneratorFolderId(folderId);
+        setShowAIGenerator(true);
+    };
+
     const currentFolderImages = images.filter(img => img.folderId === selectedFolder);
     const currentFolder = folders.find(f => f.id === selectedFolder);
 
@@ -140,6 +148,7 @@ function App() {
                         setShowImageGrid(false);
                         setSelectedFolder(null);
                     }}
+                    onAIGeneratorOpen={handleAIGeneratorOpen}
                 />
             )}
 
@@ -152,6 +161,23 @@ function App() {
                     onImageSelect={handleImageSelect}
                 />
             )}
+
+            {/* AI Map Generator */}
+            <AIMapGenerator
+                isVisible={showAIGenerator}
+                onClose={() => {
+                    setShowAIGenerator(false);
+                    setAiGeneratorFolderId(null);
+                }}
+                onMapGenerated={() => {
+                    // Refresh the images after generating a new map
+                    loadData();
+                    setShowAIGenerator(false);
+                    setAiGeneratorFolderId(null);
+                }}
+                folders={folders}
+                currentFolderId={aiGeneratorFolderId || undefined}
+            />
 
             <OfflineIndicator />
         </div>

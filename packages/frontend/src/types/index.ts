@@ -6,6 +6,7 @@ export interface Image {
     uploadedAt: string;
     size: number;
     mimeType: string;
+    prompt?: string; // AI generation prompt
 }
 
 export interface Folder {

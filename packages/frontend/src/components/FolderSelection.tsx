@@ -126,6 +126,7 @@ export const FolderSelection: React.FC<FolderSelectionProps> = ({
                     )}
                 </div>
 
+
                 {/* Quick Upload */}
                 {folders.length > 0 && (
                     <div className="mt-12">
