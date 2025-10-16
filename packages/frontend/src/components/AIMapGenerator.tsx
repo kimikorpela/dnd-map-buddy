@@ -65,10 +65,10 @@ export const AIMapGenerator: React.FC<AIMapGeneratorProps> = ({
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        inputs: `${prompt}, fantasy map, top-down view, ultra detailed, high quality, D&D style, 16:9 aspect ratio, wide format, clean lines, vibrant colors, sharp details, no blur, crisp edges, professional cartography, clear visibility, rich textures, well-lit, atmospheric lighting, game map style`,
+                        inputs: `beautiful fantasy map of map a ${prompt}, beautiful fantasy map inspired by middle earth and azeroth and discworld and westeros and essos and the witcher world and tamriel and faerûn and thedas, top-down view, 4k, beautiful colors, crisp, high-resolution artistic map, topographic 3D terrain, artistic map. It's an aesthetically pleasing fantasy world map artwork with impeccable attention to detail and impressive composition.`,
                         parameters: {
                             num_inference_steps: 30,
-                            guidance_scale: 8.5,
+                            guidance_scale: 7,
                             width: 1024,
                             height: 576
                         }
