@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FolderPlus, FolderOpen, Upload } from 'lucide-react';
+import { FolderPlus, FolderOpen } from 'lucide-react';
 import { Folder } from '../types';
 import { UploadArea } from './UploadArea';
 
